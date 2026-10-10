@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Trip #{{ trip.id }} — Traffic Safety Monitor{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>#map { height: 480px; border-radius: 8px; }</style>
+{% endblock %}
+{% block content %}
+<h1>Trip #{{ trip.id }} — {{ trip.pickup_name }} → {{ trip.dropoff_name }}</h1>
+<p>Status: <span class="sev sev-{{ trip.status }}">{{ trip.status }}</span>
+&nbsp;·&nbsp; Driver: {{ trip.driver.full_name }} &nbsp;·&nbsp; Vehicle: {{ trip.vehicle.plate_number }}</p>
+<div class="panel"><div id="map"></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const route = {{ route_json | safe }};
+const map = L.map("map");
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+if (route.length) {
+  const latlngs = route.map(p => [p[0], p[1]]);
+  L.polyline(latlngs, { color: "#0275d8", weight: 4 }).addTo(map);
+  L.marker(latlngs[0]).addTo(map).bindPopup("Pickup: {{ trip.pickup_name }}");
+  L.marker(latlngs[latlngs.length - 1]).addTo(map).bindPopup("Drop-off: {{ trip.dropoff_name }}");
+  map.fitBounds(latlngs, { padding: [30, 30] });
+} else {
+  map.setView([{{ trip.pickup_lat }}, {{ trip.pickup_lng }}], 13);
+}
+</script>
+{% endblock %}

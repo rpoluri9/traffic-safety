@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Drivers — Traffic Safety Monitor{% endblock %}
+{% block content %}
+<h1>Drivers</h1>
+<div class="panel">
+  <table>
+    <tr><th>#</th><th>Name</th><th>License</th><th>Phone</th><th>Violations</th><th>Safety score</th></tr>
+    {% for d in drivers %}
+    <tr>
+      <td>{{ d.id }}</td>
+      <td>{{ d.full_name }}</td>
+      <td>{{ d.license_number }}</td>
+      <td>{{ d.phone }}</td>
+      <td>{{ d.violation_count }}</td>
+      <td><strong class="score-{{ 'good' if d.score >= 80 else 'warn' if d.score >= 50 else 'bad' }}">{{ d.score }}</strong> / 100</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+<p class="muted">Safety score = 100 minus weighted penalties
+(CRITICAL −25, HIGH −15, MEDIUM −8, LOW −3).</p>
+{% endblock %}

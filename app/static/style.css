@@ -1,0 +1,36 @@
+* { box-sizing: border-box; }
+body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f4f6f8; color: #222; }
+.topbar { background: #1b2a4a; color: #fff; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
+.brand { font-weight: 700; font-size: 1.2em; }
+.topbar nav a { color: #cfe0ff; margin-left: 18px; text-decoration: none; }
+.topbar nav a:hover { color: #fff; }
+.container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+.footer { text-align: center; color: #888; padding: 24px; font-size: 0.9em; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.stat { font-size: 2.2em; font-weight: 700; }
+.label { color: #666; margin-top: 4px; }
+.alert-card { border-left: 5px solid #d9534f; }
+.panel { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 0.95em; }
+.muted { color: #888; }
+.btn { background: #0275d8; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 1em; }
+.btn:hover { background: #025aa5; }
+.sev { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 700; color: #fff; background: #777; }
+.sev-CRITICAL { background: #b30000; }
+.sev-HIGH { background: #d9534f; }
+.sev-MEDIUM { background: #f0ad4e; }
+.sev-LOW { background: #5bc0de; }
+.sev-ACTIVE { background: #5cb85c; }
+.sev-PLANNED { background: #777; }
+.sev-COMPLETED { background: #0275d8; }
+.score-good { color: #2a9d48; }
+.score-warn { color: #e08a00; }
+.score-bad { color: #d9534f; }
+.form label { display: block; margin: 10px 0; }
+.form input, .form select { padding: 8px; margin-left: 8px; border: 1px solid #ccc; border-radius: 6px; }
+.form-inline label { margin-right: 16px; }
+.form-inline select { padding: 6px; border: 1px solid #ccc; border-radius: 6px; }

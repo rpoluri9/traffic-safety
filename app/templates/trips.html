@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Trips — Traffic Safety Monitor{% endblock %}
+{% block content %}
+<h1>Trips</h1>
+<div class="panel">
+  <h2>New trip</h2>
+  <form id="trip-form" class="form">
+    <label>Driver
+      <select id="f-driver">{% for d in drivers %}<option value="{{ d.id }}">{{ d.full_name }}</option>{% endfor %}</select>
+    </label>
+    <label>Pickup <input id="f-pickup" value="Downtown Garage" required></label>
+    <label>Pickup lat,lng <input id="f-pickup-ll" value="42.3601,-71.0589" required></label>
+    <label>Drop-off <input id="f-dropoff" value="Airport Terminal" required></label>
+    <label>Drop-off lat,lng <input id="f-dropoff-ll" value="42.3650,-71.0490" required></label>
+    <button class="btn" type="submit">Create trip</button>
+    <span id="trip-msg" class="muted"></span>
+  </form>
+</div>
+<div class="panel">
+  <h2>All trips</h2>
+  <table>
+    <tr><th>#</th><th>Route</th><th>Status</th><th></th></tr>
+    {% for t in trips %}
+    <tr>
+      <td>{{ t.id }}</td>
+      <td>{{ t.pickup_name }} → {{ t.dropoff_name }}</td>
+      <td><span class="sev sev-{{ t.status }}">{{ t.status }}</span></td>
+      <td><a href="/trips/{{ t.id }}">View map</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById("trip-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("trip-msg");
+  const ll = (s) => s.split(",").map(Number);
+  const [plat, plng] = ll(document.getElementById("f-pickup-ll").value);
+  const [dlat, dlng] = ll(document.getElementById("f-dropoff-ll").value);
+  try {
+    const vehicles = await (await fetch("/api/v1/vehicles", { headers: { "X-API-Key": API_KEY } })).json();
+    const r = await fetch("/api/v1/trips", {
+      method: "POST",
+      headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        driver_id: +document.getElementById("f-driver").value,
+        vehicle_id: vehicles[0].id,
+        pickup_name: document.getElementById("f-pickup").value,
+        pickup_lat: plat, pickup_lng: plng,
+        dropoff_name: document.getElementById("f-dropoff").value,
+        dropoff_lat: dlat, dropoff_lng: dlng,
+      }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    location.reload();
+  } catch (err) { msg.textContent = "Failed: " + err.message; }
+});
+</script>
+{% endblock %}

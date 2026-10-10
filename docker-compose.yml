@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: <redacted>
+      POSTGRES_DB: trafficdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: <redacted>
+      API_KEY: change-this-api-key-in-production
+    depends_on:
+      - db
+
+volumes:
+  pgdata:

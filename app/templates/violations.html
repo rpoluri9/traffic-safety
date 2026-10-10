@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Violations — Traffic Safety Monitor{% endblock %}
+{% block content %}
+<h1>Violations</h1>
+<div class="panel">
+  <form method="get" class="form-inline">
+    <label>Type
+      <select name="type">
+        <option value="">All</option>
+        {% for t in violation_types %}
+        <option value="{{ t }}" {% if t == active_type %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Severity
+      <select name="severity">
+        <option value="">All</option>
+        {% for s in severities %}
+        <option value="{{ s }}" {% if s == active_severity %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="btn" type="submit">Filter</button>
+  </form>
+</div>
+<div class="panel">
+  <table>
+    <tr><th>#</th><th>Type</th><th>Severity</th><th>Driver</th><th>Speed</th><th>Message</th><th>Time</th></tr>
+    {% for v in violations %}
+    <tr>
+      <td>{{ v.id }}</td>
+      <td>{{ v.type }}</td>
+      <td><span class="sev sev-{{ v.severity }}">{{ v.severity }}</span></td>
+      <td>{{ v.driver.full_name }}</td>
+      <td>{{ "%.0f"|format(v.speed) }} km/h</td>
+      <td>{{ v.message }}</td>
+      <td>{{ v.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="muted">No violations match.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

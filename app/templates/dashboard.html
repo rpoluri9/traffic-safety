@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Traffic Safety Monitor{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="cards" id="stat-cards">
+  <div class="card"><div class="stat" id="s-violations">–</div><div class="label">Violations</div></div>
+  <div class="card alert-card"><div class="stat" id="s-critical">–</div><div class="label">Critical alerts</div></div>
+  <div class="card"><div class="stat" id="s-trips">–</div><div class="label">Active trips</div></div>
+  <div class="card"><div class="stat" id="s-score">–</div><div class="label">Avg safety score</div></div>
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <h2>Violations by type</h2>
+    <canvas id="ch-type" height="220"></canvas>
+  </div>
+  <div class="panel">
+    <h2>Violations — last 7 days</h2>
+    <canvas id="ch-day" height="220"></canvas>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Simulate a trip <button id="btn-sim" class="btn">▶ Run simulation</button></h2>
+  <p class="muted">Creates a demo trip and streams scripted telemetry through the
+  rules engine — overspeeding, a red-light cross, phone use, and more.</p>
+  <div id="sim-status" class="muted"></div>
+</div>
+
+<div class="panel">
+  <h2>Recent violations</h2>
+  <table>
+    <tr><th>#</th><th>Type</th><th>Severity</th><th>Driver</th><th>Message</th><th>Time</th></tr>
+    {% for v in recent %}
+    <tr>
+      <td>{{ v.id }}</td>
+      <td>{{ v.type }}</td>
+      <td><span class="sev sev-{{ v.severity }}">{{ v.severity }}</span></td>
+      <td>{{ v.driver.full_name }}</td>
+      <td>{{ v.message }}</td>
+      <td>{{ v.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" class="muted">No violations yet — run the simulation above.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function api(path, opts = {}) {
+  const r = await fetch(path, {
+    ...opts,
+    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts.headers || {}) },
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function loadStats() {
+  const s = await api("/api/v1/dashboard/stats");
+  document.getElementById("s-violations").textContent = s.total_violations;
+  document.getElementById("s-critical").textContent = s.critical_alerts;
+  document.getElementById("s-trips").textContent = s.active_trips;
+  document.getElementById("s-score").textContent = s.avg_safety_score;
+
+  new Chart(document.getElementById("ch-type"), {
+    type: "bar",
+    data: { labels: Object.keys(s.by_type), datasets: [{ data: Object.values(s.by_type), backgroundColor: "#d9534f" }] },
+    options: { plugins: { legend: { display: false } } },
+  });
+  new Chart(document.getElementById("ch-day"), {
+    type: "line",
+    data: { labels: s.per_day.map(d => d.day), datasets: [{ data: s.per_day.map(d => d.count), borderColor: "#0275d8", fill: false }] },
+    options: { plugins: { legend: { display: false } } },
+  });
+}
+
+// Scripted telemetry: each reading is designed to trip specific rules.
+const SCRIPT = [
+  { speed: 45, speed_limit: 50, heading: 90, road_direction: 90, signal_state: "green", at_intersection: false, phone_in_use: false, alcohol_level: 0.0, seatbelt_on: true,  lat: 42.3601, lng: -71.0589 },  // clean
+  { speed: 68, speed_limit: 50, heading: 90, road_direction: 90, signal_state: "green", at_intersection: false, phone_in_use: false, alcohol_level: 0.0, seatbelt_on: true,  lat: 42.3610, lng: -71.0570 },  // overspeed HIGH
+  { speed: 40, speed_limit: 50, heading: 90, road_direction: 90, signal_state: "red",   at_intersection: true,  phone_in_use: false, alcohol_level: 0.0, seatbelt_on: true,  lat: 42.3620, lng: -71.0550 },  // red-light cross
+  { speed: 55, speed_limit: 50, heading: 90, road_direction: 90, signal_state: "green", at_intersection: false, phone_in_use: true,  alcohol_level: 0.0, seatbelt_on: true,  lat: 42.3630, lng: -71.0530 },  // mobile use (+overspeed MEDIUM)
+  { speed: 48, speed_limit: 50, heading: 270, road_direction: 90, signal_state: "green", at_intersection: false, phone_in_use: false, alcohol_level: 0.0, seatbelt_on: true,  lat: 42.3640, lng: -71.0510 },  // wrong way
+  { speed: 35, speed_limit: 50, heading: 90, road_direction: 90, signal_state: "green", at_intersection: false, phone_in_use: false, alcohol_level: 0.10, seatbelt_on: false, lat: 42.3650, lng: -71.0490 },  // drunk + no seatbelt
+];
+
+document.getElementById("btn-sim").addEventListener("click", async () => {
+  const status = document.getElementById("sim-status");
+  try {
+    status.textContent = "Creating trip…";
+    const drivers = await api("/api/v1/drivers");
+    if (!drivers.length) { status.textContent = "Seed the demo data first (python seed.py)."; return; }
+    const vehicles = await api("/api/v1/vehicles");
+    const trip = await api("/api/v1/trips", { method: "POST", body: JSON.stringify({
+      driver_id: drivers[0].id, vehicle_id: vehicles[0].id,
+      pickup_name: "Downtown Garage", pickup_lat: 42.3601, pickup_lng: -71.0589,
+      dropoff_name: "Airport Terminal", dropoff_lat: 42.3650, dropoff_lng: -71.0490,
+    })});
+    await api(`/api/v1/trips/${trip.id}/start`, { method: "POST" });
+    let fired = 0;
+    for (const point of SCRIPT) {
+      status.textContent = `Streaming telemetry… (${fired} violations so far)`;
+      const res = await api("/api/v1/telemetry", { method: "POST", body: JSON.stringify({
+        driver_id: drivers[0].id, vehicle_id: vehicles[0].id, trip_id: trip.id, ...point,
+      })});
+      fired += res.violations.length;
+      await new Promise(r => setTimeout(r, 250));
+    }
+    await api(`/api/v1/trips/${trip.id}/complete`, { method: "POST" });
+    status.textContent = `Done — ${fired} violations recorded on trip #${trip.id}. Reloading…`;
+    setTimeout(() => location.reload(), 1200);
+  } catch (e) { status.textContent = "Simulation failed: " + e.message; }
+});
+
+loadStats().catch(e => console.error(e));
+</script>
+{% endblock %}
